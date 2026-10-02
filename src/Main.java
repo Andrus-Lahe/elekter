@@ -13,7 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 void main() throws Exception {
-    String[] areas = {"EE", "AT"};
+    String[] areas = {"EE"};
     LocalDate today = LocalDate.now(ZoneOffset.UTC);
     Instant now = Instant.now();
 
