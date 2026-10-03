@@ -10,12 +10,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `src/main/java/elekter/ElekterApplication.java` — Spring Boot entry point.
 - `src/main/java/elekter/PriceController.java` — `GET /prices` returns plain text, one line per interval (`start - end price`, EUR/MWh). It fetches today's and tomorrow's (UTC) prices, extracts them with a regex rather than a JSON parser, and drops intervals that have already ended. Tomorrow's prices only appear once Nord Pool has published them.
-- `build.gradle` / `settings.gradle` / `gradlew` — Gradle 9.8 build with the Gradle wrapper; Java toolchain 26.
+- `src/main/java/elekter/SwitchService.java` — holds the price limit (`limit.txt`) and decides the switch state: ON while the current price is `<=` the limit, OFF otherwise or when there is no price info. `@Scheduled` re-applies it every 3 minutes and `PUT /api/limit` applies it immediately.
+- `src/main/java/elekter/Relay.java` — drives the relay on GPIO17 (BCM) via the libgpiod `gpioset` command (v1 and v2 syntax auto-detected). Does nothing unless `--elekter.gpio.enabled=true`; options `--elekter.gpio.active-low=true` and `--elekter.gpio.chip=gpiochip0`.
+- `src/main/resources/static/index.html` — the single-page UI (slider, price marker, switch badge).
+- `build.gradle` / `settings.gradle` / `gradlew` — Gradle 9.8 build with the Gradle wrapper; compiled with `--release 17` so the jar runs on JDK 17+.
+- `deploy/elekter.service` — systemd unit for the Raspberry Pi (see below).
 - `.claude/skills/` — skills copied from the `toolrental` project; git-ignored, not part of this app.
 
 ## Build / run
 
-The JDK on PATH may be an older one (JDK 17 here), which Gradle can't use for this project. Point `JAVA_HOME` at JDK 26 first (IntelliJ's copy is at `~/.jdks/openjdk-26.0.1`):
+Gradle 9.8 itself needs a newer JDK than the JDK 17 on PATH. Point `JAVA_HOME` at JDK 26 first (IntelliJ's copy is at `~/.jdks/openjdk-26.0.1`):
 
 ```
 export JAVA_HOME=~/.jdks/openjdk-26.0.1
@@ -24,3 +28,15 @@ export JAVA_HOME=~/.jdks/openjdk-26.0.1
 ```
 
 Gradle and the Spring Boot CLI were installed via SDKMAN (`source ~/.sdkman/bin/sdkman-init.sh`), but the project itself only needs `./gradlew`.
+
+## Raspberry Pi 3 Model B deployment
+
+Target: Raspberry Pi OS 64-bit (Bookworm), `sudo apt install openjdk-17-jre-headless gpiod`, timezone `Europe/Tallinn`, NTP via systemd-timesyncd.
+
+```
+./gradlew bootJar
+scp build/libs/elekter-0.0.1.jar pi@<pi-ip>:/opt/elekter/elekter.jar
+scp deploy/elekter.service pi@<pi-ip>:/tmp/ && ssh pi@<pi-ip> 'sudo mv /tmp/elekter.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now elekter'
+```
+
+The service runs in `/opt/elekter` (create it and `chown` it to `pi` first); `limit.txt` is written there. The service user must be in the `gpio` group (default for `pi`). The unit starts the app with `--elekter.gpio.enabled=true`; on other machines GPIO stays off and the relay state is only logged. The relay is an active-high SSR (LCDK-480DA, see `docs/raspberry-pi-rele.md`: GPIO17 pin 11 -> terminal 3 +, GND pin 9 -> terminal 4 -); when the app stops the GPIO line is released and falls LOW, so the relay turns OFF (fail-safe). An active-low board would need `--elekter.gpio.active-low=true` and would turn ON on release. The page has no authentication — keep port 8080 inside the LAN.

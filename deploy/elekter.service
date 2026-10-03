@@ -1,0 +1,14 @@
+[Unit]
+Description=Elekter price limit switch
+After=network-online.target time-sync.target
+Wants=network-online.target time-sync.target
+
+[Service]
+User=pi
+WorkingDirectory=/opt/elekter
+ExecStart=/usr/bin/java -Xmx256m -jar /opt/elekter/elekter.jar --elekter.gpio.enabled=true
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
