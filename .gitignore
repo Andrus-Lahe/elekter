@@ -31,3 +31,6 @@ bin/
 ### Gradle ###
 .gradle/
 build/
+
+### Claude skills (copied from toolrental) ###
+.claude/skills/
