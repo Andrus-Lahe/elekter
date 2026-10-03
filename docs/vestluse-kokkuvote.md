@@ -14,7 +14,7 @@ Elektri börsihinna põhjal Raspberry Pi GPIO lüliti juhtimine. Veebileht, kus 
 ## Otsused
 
 **Liugur ja skaala**
-- Skaala -10 kuni 1000, horisontaalselt moonutatud: -10–75 võtab 60% laiusest, 75–300 järgmised 25%, 300–500 10%, 500–1000 viimased 5%.
+- Skaala -10 kuni 1000, horisontaalselt moonutatud: -10–75 võtab 60% laiusest, 75–100 8%, 100–200 8%, 200–300 9%, 300–500 10% ja 500–1000 viimased 5%.
 - Skaala kohal punane kolmnurk märgib praegust hinda.
 - Kastid: Limiit, Praegune hind, Lüliti. Allosas failide/NTP staatus.
 - Liuguri vabastamisel salvestatakse limiit (`PUT /api/limit`).

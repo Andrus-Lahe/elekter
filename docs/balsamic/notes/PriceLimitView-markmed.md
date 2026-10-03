@@ -8,7 +8,7 @@ Failinimi: PriceLimitView.vue
 Frontend rada: /
 
 Vaatega seotud lisainfo:
-Lüliti on Sees (ON), kui praegune hind on madalam kui limiit või sellega võrdne (hinnamarker on liuguri vasakul, rohelisel alal); kui hind on limiidist kõrgem, on lüliti VÄLJAS (OFF). Lüliti järgib liugurit reaalajas, ka lohistamise ajal. Kui hinnainfot pole, on lüliti alati VÄLJAS. Liuguri vabastamisel salvestatakse limiit backendi (PUT /api/limit). Kõik kellaajad on EET (Europe/Tallinn). Skaala on tihendatud: -10–75 võtab 60% laiusest, 75–300 järgmised 25%, 300–500 10% ja 500–1000 viimased 5%.
+Lüliti on Sees (ON), kui praegune hind on madalam kui limiit või sellega võrdne (hinnamarker on liuguri vasakul, rohelisel alal); kui hind on limiidist kõrgem, on lüliti VÄLJAS (OFF). Lüliti järgib liugurit reaalajas, ka lohistamise ajal. Kui hinnainfot pole, on lüliti alati VÄLJAS. Liuguri vabastamisel salvestatakse limiit backendi (PUT /api/limit). Kõik kellaajad on EET (Europe/Tallinn). Skaala on tihendatud: -10–75 võtab 60% laiusest, 75–100 8%, 100–200 8%, 200–300 9%, 300–500 10% ja 500–1000 viimased 5%.
 ```
 
 ## API märkmed — GET /api/status
