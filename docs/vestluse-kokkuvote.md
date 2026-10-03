@@ -27,7 +27,8 @@ Elektri börsihinna põhjal Raspberry Pi GPIO lüliti juhtimine. Veebileht, kus 
 **Hinnafailid ja ajastus (kõik EET)**
 - Kaks faili, nimetatud kuupäeva järgi: "today" ja "tomorrow".
 - Homse faili allalaadimine iga päev kell 14:30. Ebaõnnestumisel 3 uut katset 2-minutilise vahega.
-- Kell 00:05 kustutatakse eilne fail.
+- Failid on nimetatud Nord Pooli tarnepäeva (CET) kuupäeva järgi. Tarnepäev algab Eesti ajas kell 01:00, seega eilne fail kustutatakse kell 01:05 (mitte 00:05), kui selle viimane intervall on lõppenud. Puhastus käib iga tunni :05 peal.
+- Kui fail puudub (Pi oli välja lülitatud või võrku polnud), laadib rakendus käivitusel ja iga 15 minuti tagant puuduva faili alla.
 - Lüliti kontroll iga 3 minuti tagant "today" failist.
 - NTP kellaaja kontroll iga tund.
 - Limiit ja hinnafailid salvestatakse kettale (limiit säilib taaskäivitusel).

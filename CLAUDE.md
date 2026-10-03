@@ -4,12 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-`elekter` is a small Gradle + Spring Boot (4.1.0, `spring-boot-starter-web`) app. It serves the current and future 15-minute day-ahead electricity prices for the Estonian (EE) area, fetched from the Nord Pool dataportal API. There is no test suite yet.
+`elekter` is a small Gradle + Spring Boot (4.1.0, `spring-boot-starter-web`) app. It stores the 15-minute day-ahead electricity prices for the Estonian (EE) area, fetched from the Nord Pool dataportal API, and switches a relay on GPIO17 by comparing the current price with a limit. Tests are in `src/test/java/elekter` (`./gradlew test`).
 
 ## Code structure
 
 - `src/main/java/elekter/ElekterApplication.java` — Spring Boot entry point.
-- `src/main/java/elekter/PriceController.java` — `GET /prices` returns plain text, one line per interval (`start - end price`, EUR/MWh). It fetches today's and tomorrow's (UTC) prices, extracts them with a regex rather than a JSON parser, and drops intervals that have already ended. Tomorrow's prices only appear once Nord Pool has published them.
+- `src/main/java/elekter/PriceService.java` — price storage: one text file per Nord Pool delivery date in `prices/` (e.g. `2026-10-03.txt`, lines `start;end;price` in EET; configurable with `elekter.prices.dir`). Delivery days follow CET, so a file runs from 01:00 EET of its date to 01:00 EET of the next day. Also does the HTTP download from Nord Pool (regex parsing, no JSON parser).
+- `src/main/java/elekter/PriceDownloader.java` — scheduling: downloads tomorrow's prices daily at 14:30 EET (3 retries, 2 minutes apart), a catch-up job at startup and every 15 minutes (today's file if no price covers now, tomorrow's if past 14:30 and missing), and an hourly :05 cleanup that deletes files whose last interval has ended (in practice 01:05 EET).
+- `src/main/java/elekter/PriceController.java` — `GET /prices` returns the saved current and future prices as plain text (`start - end price`, EET, EUR/MWh).
 - `src/main/java/elekter/SwitchService.java` — holds the price limit (`limit.txt`) and decides the switch state: ON while the current price is `<=` the limit, OFF otherwise or when there is no price info. `@Scheduled` re-applies it every 3 minutes and `PUT /api/limit` applies it immediately.
 - `src/main/java/elekter/Relay.java` — drives the relay on GPIO17 (BCM) via the libgpiod `gpioset` command (v1 and v2 syntax auto-detected). Does nothing unless `--elekter.gpio.enabled=true`; options `--elekter.gpio.active-low=true` and `--elekter.gpio.chip=gpiochip0`.
 - `src/main/resources/static/index.html` — the single-page UI (slider, price marker, switch badge).

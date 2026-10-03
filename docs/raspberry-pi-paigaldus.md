@@ -14,7 +14,7 @@ Juhend viib valmis `elekter` rakenduse Raspberry Pi peale, nii et see käivitub 
 | Jar arvutis | `build/libs/elekter-0.0.1.jar` (`-plain.jar` faili ei ole vaja) |
 | Jar Raspberry peal | `/opt/elekter/elekter.jar` |
 | Teenuse fail Raspberry peal | `/etc/systemd/system/elekter.service` (allikas: `deploy/elekter.service`) |
-| Töökaust Raspberry peal | `/opt/elekter` (siia salvestub `limit.txt`) |
+| Töökaust Raspberry peal | `/opt/elekter` (siia salvestub `limit.txt` ja kausta `prices/` hinnafailid) |
 | Veebileht | `http://<raspberry-ip>:8080/` |
 | Relee | GPIO17 (BCM), füüsiline pinn 11, GND pinn 9 |
 | Ajavöönd | `Europe/Tallinn` |
@@ -127,7 +127,8 @@ Limiit (`limit.txt`) jääb alles, sest see on kaustas `/opt/elekter` jari kõrv
 | `sudo systemctl restart elekter` | taaskäivitab |
 | `journalctl -u elekter -n 100` | viimased 100 logirida |
 | `cat /opt/elekter/limit.txt` | praegune limiit |
-| `curl localhost:8080/prices` | tänased ja homsed hinnad (UTC) |
+| `curl localhost:8080/prices` | praegused ja tulevased hinnad (EET) |
+| `ls /opt/elekter/prices` | salvestatud hinnafailid (nimes Nord Pooli kuupäev) |
 
 ## 9. Probleemid ja lahendused
 
@@ -145,6 +146,16 @@ Limiit (`limit.txt`) jääb alles, sest see on kaustas `/opt/elekter` jari kõrv
 
 Veebilehel **ei ole parooli**. Igaüks sinu võrgus saab limiiti muuta, seega ära ava porti 8080 internetti (ruuteri pordiedastus). Kaugjuurdepääsuks kasuta VPN-i (nt Tailscale või WireGuard).
 
+## Hinnafailid
+
+Rakendus salvestab hinnad kausta `/opt/elekter/prices/`, üks fail Nord Pooli tarnepäeva kohta (nt `2026-10-03.txt`, ridade kuju `algus;lõpp;hind`, kellaajad EET-s). Lüliti otsus tehakse nendest failidest, mitte iga kord internetist.
+
+- **Iga päev kell 14:30 (EET)** laetakse alla homse päeva fail. Ebaõnnestumisel proovitakse veel 3 korda 2-minutilise vahega.
+- **Käivitusel ja iga 15 minuti tagant** laetakse puuduv fail alla (nt kui Pi oli välja lülitatud või võrku polnud kell 14:30). Esimesel käivitusel tekivad failid seega paari sekundiga.
+- **Kustutamine:** Nord Pooli tarnepäev algab Eesti ajas kell 01:00, seega fail on kasutusel kuni järgmise päeva 01:00. Iga tunni :05 peal kustutatakse failid, mille viimane intervall on lõppenud (praktikas kell 01:05).
+- **Tõrke korral** (faili pole, hinda pole) on lüliti VÄLJAS.
+- Failid on tavalised tekstifailid, neid võib käsitsi vaadata (`cat /opt/elekter/prices/*.txt`) või kustutada, siis laetakse need uuesti alla.
+
 ## Mida see versioon veel ei tee
 
-Hinnafailide allalaadimist kell 14:30 kordustega ja nende kustutamist keskööl pole veel tehtud. Praegu küsib rakendus hinnad Nord Poolist ise (5 minuti vahemälu) ja kontrollib lülitit iga 3 minuti tagant.
+NTP kellaaja kontrolli teeb operatsioonisüsteem (`systemd-timesyncd`), rakendus seda ise ei kontrolli. Hinnad on ainult Nord Pooli päev-ette hinnad EE piirkonnale.

@@ -35,3 +35,4 @@ build/
 ### Claude skills (copied from toolrental) ###
 .claude/skills/
 limit.txt
+prices/

@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -13,7 +11,6 @@ import org.springframework.stereotype.Service;
 /** Holds the price limit and drives the relay: ON while the current price is at or below the limit. */
 @Service
 public class SwitchService {
-    private static final ZoneId EET = ZoneId.of("Europe/Tallinn");
     private static final Path LIMIT_FILE = Path.of("limit.txt");
 
     public record Status(Double currentPrice, double limit, boolean switchOn, String intervalStart) {}
@@ -38,8 +35,7 @@ public class SwitchService {
             // no price info -> switch stays off
         }
         if (current == null) return new Status(null, limit, false, null);
-        return new Status(current.price(), limit, current.price() <= limit,
-                DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(current.start().atZone(EET)));
+        return new Status(current.price(), limit, current.price() <= limit, PriceService.formatEet(current.start()));
     }
 
     public void setLimit(double newLimit) throws IOException {
