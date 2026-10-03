@@ -4,16 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-This is a minimal, single-file Java project generated from IntelliJ IDEA's default "New Project" onboarding template. There is no build tool (no Maven/Gradle), no dependencies, and no test suite — just `src/Main.java`.
-
-The project is not (yet) a git repository.
+`elekter` is a small Gradle + Spring Boot (4.1.0, `spring-boot-starter-web`) app. It serves the current and future 15-minute day-ahead electricity prices for the Estonian (EE) area, fetched from the Nord Pool dataportal API. There is no test suite yet.
 
 ## Code structure
 
-- `src/Main.java` — the only source file. It uses Java's implicit-class / instance-`main` syntax (no `class` wrapper, no `public static`), a feature finalized in later JDKs (JEP 512). The `.idea/misc.xml` project SDK is set to JDK 26.
+- `src/main/java/elekter/ElekterApplication.java` — Spring Boot entry point.
+- `src/main/java/elekter/PriceController.java` — `GET /prices` returns plain text, one line per interval (`start - end price`, EUR/MWh). It fetches today's and tomorrow's (UTC) prices, extracts them with a regex rather than a JSON parser, and drops intervals that have already ended. Tomorrow's prices only appear once Nord Pool has published them.
+- `build.gradle` / `settings.gradle` / `gradlew` — Gradle 9.8 build with the Gradle wrapper; Java toolchain 26.
+- `.claude/skills/` — skills copied from the `toolrental` project; git-ignored, not part of this app.
 
 ## Build / run
 
-There is no build script. Compile and run directly with `javac`/`java` from a JDK new enough to support unnamed classes and instance main methods (JDK 25+; earlier JDKs need `--enable-preview`), or run via IntelliJ IDEA's gutter "Run" action.
+The JDK on PATH may be an older one (JDK 17 here), which Gradle can't use for this project. Point `JAVA_HOME` at JDK 26 first (IntelliJ's copy is at `~/.jdks/openjdk-26.0.1`):
 
-Note: the system's default `java`/`javac` may be an older LTS version (this environment currently only has a JDK 17 `java` runtime on PATH, and no `javac`) — check `java -version` and locate a matching JDK (e.g. via `update-alternatives --list java` or IntelliJ's configured project SDK) before assuming compilation will work with whatever is on PATH.
+```
+export JAVA_HOME=~/.jdks/openjdk-26.0.1
+./gradlew bootRun     # serves http://localhost:8080/prices
+./gradlew build       # compile + bootJar (build/libs/elekter-0.0.1.jar)
+```
+
+Gradle and the Spring Boot CLI were installed via SDKMAN (`source ~/.sdkman/bin/sdkman-init.sh`), but the project itself only needs `./gradlew`.
