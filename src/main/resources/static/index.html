@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elektri hind</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+  .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1rem; }
+  #price { font-size: 2.5rem; font-weight: 600; }
+  #switch { padding: .3rem 1rem; border-radius: 1rem; color: #fff; font-weight: 600; background: #888; }
+  #switch.on { background: #2a9d4b; }
+  #switch.off { background: #c0392b; }
+  .scale { position: relative; height: 2.5rem; }
+  .boxes { position: absolute; bottom: 0; left: 0; right: 0; height: 1.5rem; display: flex; gap: 2px; }
+  .box { flex: 1; background: #ddd; border-radius: 2px; }
+  .box.lit { background: #2a9d4b; }
+  #marker { position: absolute; top: 0; width: 0; height: 0; transform: translateX(-50%);
+            border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 12px solid #c0392b; }
+  .ticks { position: relative; height: 1.2rem; font-size: .75rem; color: #666; }
+  .ticks span { position: absolute; transform: translateX(-50%); }
+  input[type=range] { width: 100%; margin: .5rem 0; }
+  #since { color: #666; font-size: .9rem; }
+</style>
+</head>
+<body>
+<h1>Elektri hind</h1>
+<div class="row">
+  <div><span id="price">–</span> <small>EUR/MWh</small><div id="since"></div></div>
+  <div id="switch">–</div>
+</div>
+
+<div class="scale"><div id="marker"></div><div class="boxes" id="boxes"></div></div>
+<div class="ticks" id="ticks"></div>
+<input type="range" id="slider" min="0" max="1000" step="1">
+<div>Limiit: <b id="limit">–</b> EUR/MWh</div>
+
+<script>
+// Compressed scale (value -> position 0..1000): -10..100 takes 60% of the width,
+// 100..300 the next 20% and 300..1000 the last 20%.
+const BOXES = 40;
+const STOPS = [[-10, 0], [100, 600], [300, 800], [1000, 1000]];
+const interp = (x, from, to) => {
+  let i = 1;
+  while (i < STOPS.length - 1 && x > STOPS[i][from]) i++;
+  const [a, b] = [STOPS[i - 1], STOPS[i]];
+  return a[to] + (x - a[from]) / (b[from] - a[from]) * (b[to] - a[to]);
+};
+const toPos = v => interp(v, 0, 1);
+const toVal = p => Math.round(interp(p, 1, 0));
+
+const $ = id => document.getElementById(id);
+const boxes = $('boxes'), slider = $('slider');
+for (let i = 0; i < BOXES; i++) boxes.append(Object.assign(document.createElement('div'), { className: 'box' }));
+for (const v of [0, 25, 50, 75, 100, 200, 300, 500, 1000]) {
+  const t = Object.assign(document.createElement('span'), { textContent: v });
+  t.style.left = toPos(v) / 10 + '%';
+  $('ticks').append(t);
+}
+
+let limit = null, price = null, dragging = false;
+
+function render() {
+  if (limit !== null) {
+    $('limit').textContent = limit;
+    const lit = Math.round(toPos(limit) / 1000 * BOXES);
+    [...boxes.children].forEach((b, i) => b.classList.toggle('lit', i < lit));
+  }
+  $('marker').style.display = price === null ? 'none' : '';
+  if (price !== null) $('marker').style.left = toPos(price) / 10 + '%';
+}
+
+async function refresh() {
+  const s = await (await fetch('/api/status')).json();
+  price = s.currentPrice;
+  $('price').textContent = price === null ? '–' : price.toFixed(2);
+  $('since').textContent = s.intervalStart ? 'alates ' + s.intervalStart.slice(11, 16) + ' (EET)' : 'hinnainfo puudub';
+  $('switch').textContent = s.switchOn ? 'SEES' : 'VÄLJAS';
+  $('switch').className = s.switchOn ? 'on' : 'off';
+  if (!dragging) { limit = s.limit; slider.value = toPos(limit); }
+  render();
+}
+
+slider.addEventListener('input', () => { dragging = true; limit = toVal(+slider.value); render(); });
+slider.addEventListener('change', async () => {
+  await fetch('/api/limit', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ limit }) });
+  dragging = false;
+  refresh();
+});
+
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>
