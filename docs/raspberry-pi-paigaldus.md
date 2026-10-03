@@ -49,7 +49,7 @@ timedatectl          # "System clock synchronized: yes" ja "NTP service: active"
 groups               # peab sisaldama "gpio"
 ```
 
-Kellaaja sünkroniseerimise (NTP) teeb operatsioonisüsteem ise (`systemd-timesyncd`), rakenduses selleks koodi ei ole. Raspberry'l puudub reaalaja kell, nii et pärast voolukatkestust on kell enne esimest sünkroonimist vale. Rakendus sõltub kellast hinna leidmisel, seepärast käivitub teenus alles pärast `time-sync.target`'it.
+Kellaaja sünkroniseerimise (NTP) teeb operatsioonisüsteem ise (`systemd-timesyncd`). Rakendus kontrollib kella lisaks ise (vt jaotist "Kella kontroll"). Raspberry'l puudub reaalaja kell, nii et pärast voolukatkestust on kell enne esimest sünkroonimist vale. Rakendus sõltub kellast hinna leidmisel, seepärast käivitub teenus alles pärast `time-sync.target`'it.
 
 Täiendavat Gradle'i, Spring Booti ega Mavenit Raspberry peale **ei** paigaldata.
 
@@ -140,7 +140,8 @@ Limiit (`limit.txt`) jääb alles, sest see on kaustas `/opt/elekter` jari kõrv
 | Logis "Could not drive GPIO17" | `gpioset` puudub (`sudo apt install gpiod`) või kasutaja pole grupis `gpio` (`sudo usermod -aG gpio pi`, siis taaskäivita Pi). |
 | `gpioset` ütleb "Device or resource busy" | Rakendus hoiab pinni. Peata teenus enne käsitsi testimist: `sudo systemctl stop elekter`. |
 | Relee ei lülitu | Kontrolli juhtmeid (pinn 11 ja 9), polaarsust (+/−) ja seda, et SSR-i juhtpinge on 3–32 V (3,3 V GPIO sobib). |
-| Kell on vale | `timedatectl`; kontrolli internetiühendust, NTP peab olema aktiivne. |
+| Lehel "NTP: kell on vale" ja lüliti VÄLJAS | Süsteemi kell erineb üle 60 s. Kontrolli `timedatectl` ja internetti, NTP peab olema aktiivne. Rakendus kontrollib kella iga 2 minuti tagant ja läheb ise tööle, kui kell on parandatud. |
+| Lehel "NTP: serveriga ei saanud ühendust" | UDP port 123 on blokeeritud või `pool.ntp.org` ei vasta. Lüliti töötab edasi. Teise serveri saad määrata ExecStart reale: `--elekter.ntp.server=<aadress>`. |
 
 ## 10. Turvalisus
 
@@ -156,6 +157,16 @@ Rakendus salvestab hinnad kausta `/opt/elekter/prices/`, üks fail Nord Pooli ta
 - **Tõrke korral** (faili pole, hinda pole) on lüliti VÄLJAS.
 - Failid on tavalised tekstifailid, neid võib käsitsi vaadata (`cat /opt/elekter/prices/*.txt`) või kustutada, siis laetakse need uuesti alla.
 
+## Kella kontroll
+
+Rakendus küsib NTP-serverilt (`pool.ntp.org`, UDP port 123) kellaaega käivitusel ja siis iga tund (kui kell on vale või server ei vasta, iga 2 minuti tagant) ning näitab tulemust lehe allservas.
+
+- **Kell õige** (erinevus kuni 60 s): tavaline töö.
+- **Kell vale** (erinevus üle 60 s): lüliti on VÄLJAS, hinda ei näidata ja hindu ei laadita alla. Tavaliselt juhtub see pärast voolukatkestust, sest Raspberry'l pole reaalaja kella. Kui operatsioonisüsteem on kella parandanud, läheb rakendus 2 minuti jooksul ise tavatööle.
+- **Server ei vasta:** lülitit ei blokeerita, aga lehel on hoiatus.
+- **Kella ei seata rakendusest**, sest see vajaks root-õigusi. Kella korrigeerib `systemd-timesyncd`.
+- Seaded (valikuline, `ExecStart` rea lõppu): `--elekter.ntp.server=...`, `--elekter.ntp.port=...`, `--elekter.ntp.threshold-seconds=...`.
+
 ## Mida see versioon veel ei tee
 
-NTP kellaaja kontrolli teeb operatsioonisüsteem (`systemd-timesyncd`), rakendus seda ise ei kontrolli. Hinnad on ainult Nord Pooli päev-ette hinnad EE piirkonnale.
+Hinnad on ainult Nord Pooli päev-ette hinnad EE piirkonnale.

@@ -24,13 +24,15 @@ public class PriceDownloader {
 
     private final PriceService prices;
     private final SwitchService switchService;
+    private final NtpClock clock;
     private final TaskScheduler scheduler;
     private final long retrySeconds;
 
-    public PriceDownloader(PriceService prices, SwitchService switchService, TaskScheduler scheduler,
+    public PriceDownloader(PriceService prices, SwitchService switchService, NtpClock clock, TaskScheduler scheduler,
                            @Value("${elekter.download.retry-seconds:120}") long retrySeconds) {
         this.prices = prices;
         this.switchService = switchService;
+        this.clock = clock;
         this.scheduler = scheduler;
         this.retrySeconds = retrySeconds;
     }
@@ -47,6 +49,7 @@ public class PriceDownloader {
      */
     @Scheduled(fixedDelay = 15 * 60 * 1000)
     public void catchUp() throws IOException {
+        if (clock.isWrong()) return; // dates would be wrong; try again once the clock is fixed
         Instant now = Instant.now();
         boolean downloaded = false;
 
@@ -67,7 +70,9 @@ public class PriceDownloader {
     }
 
     void downloadWithRetry(LocalDate date, int retriesLeft) {
-        if (prices.download(date)) {
+        if (clock.isWrong()) {
+            log.warn("Clock is wrong, not downloading prices for {}", date);
+        } else if (prices.download(date)) {
             switchService.apply();
         } else if (retriesLeft > 0) {
             log.warn("Retrying download for {} in {} s ({} retries left)", date, retrySeconds, retriesLeft);

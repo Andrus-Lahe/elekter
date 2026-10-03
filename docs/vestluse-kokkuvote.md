@@ -30,7 +30,7 @@ Elektri börsihinna põhjal Raspberry Pi GPIO lüliti juhtimine. Veebileht, kus 
 - Failid on nimetatud Nord Pooli tarnepäeva (CET) kuupäeva järgi. Tarnepäev algab Eesti ajas kell 01:00, seega eilne fail kustutatakse kell 01:05 (mitte 00:05), kui selle viimane intervall on lõppenud. Puhastus käib iga tunni :05 peal.
 - Kui fail puudub (Pi oli välja lülitatud või võrku polnud), laadib rakendus käivitusel ja iga 15 minuti tagant puuduva faili alla.
 - Lüliti kontroll iga 3 minuti tagant "today" failist.
-- NTP kellaaja kontroll iga tund.
+- NTP kellaaja kontroll iga tund (SNTP päring `pool.ntp.org`-ile). Rakendus ainult mõõdab kella nihet, kella korrigeerib operatsioonisüsteem (`systemd-timesyncd`), sest kella seadmine vajab root-õigusi. Kui nihe on üle 60 sekundi, on lüliti VÄLJAS ja allalaadimised ootavad. Kui NTP serverini ei jõua, lülitit ei blokeerita, aga lehel on hoiatus. Vale kella või ühenduseta korral korratakse kontrolli iga 2 minuti tagant.
 - Limiit ja hinnafailid salvestatakse kettale (limiit säilib taaskäivitusel).
 
 ## Lahtised küsimused

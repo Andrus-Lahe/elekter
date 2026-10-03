@@ -45,7 +45,9 @@ class PriceDownloaderTest {
     }
 
     private PriceDownloader downloader(FakePrices prices) {
-        return new PriceDownloader(prices, new SwitchService(prices, new Relay(false, false, "gpiochip0")), scheduler, 0);
+        NtpClock clock = new NtpClock(scheduler, "localhost", 123, 60);
+        return new PriceDownloader(prices, new SwitchService(prices, new Relay(false, false, "gpiochip0"), clock),
+                clock, scheduler, 0);
     }
 
     private static void awaitCalls(FakePrices prices, int expected) throws InterruptedException {

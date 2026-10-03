@@ -21,6 +21,8 @@
   .ticks span { position: absolute; transform: translateX(-50%); }
   input[type=range] { width: 100%; margin: .5rem 0; }
   #since { color: #666; font-size: .9rem; }
+  #ntp { margin-top: 2rem; padding-top: .75rem; border-top: 1px solid #ddd; color: #666; font-size: .9rem; }
+  #ntp.bad { color: #c0392b; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -34,6 +36,7 @@
 <div class="ticks" id="ticks"></div>
 <input type="range" id="slider" min="0" max="1000" step="1">
 <div>Limiit: <b id="limit">–</b> EUR/MWh</div>
+<div id="ntp"></div>
 
 <script>
 // Compressed scale (value -> position 0..1000): -10..75 takes 60% of the width,
@@ -74,11 +77,25 @@ function render() {
   $('switch').className = on ? 'on' : 'off';
 }
 
+function showNtp(n) {
+  const secs = n.offsetMillis === null ? '' : (Math.abs(n.offsetMillis) / 1000).toFixed(1) + ' s';
+  const at = n.checkedAt ? ', kontrollitud ' + n.checkedAt.slice(11, 16) : '';
+  const text = {
+    ok: `NTP: kell õige (erinevus ${secs}${at})`,
+    wrong: `NTP: kell on vale (erinevus ${secs}${at}), lüliti VÄLJAS`,
+    unreachable: 'NTP: serveriga ei saanud ühendust' + (n.checkedAt ? ` (viimane õnnestunud kontroll ${n.checkedAt.slice(11, 16)})` : ''),
+    unknown: 'NTP: pole veel kontrollitud',
+  }[n.state];
+  $('ntp').textContent = text;
+  $('ntp').className = n.state === 'wrong' ? 'bad' : '';
+}
+
 async function refresh() {
   const s = await (await fetch('/api/status')).json();
   price = s.currentPrice;
   $('price').textContent = price === null ? '–' : price.toFixed(2);
   $('since').textContent = s.intervalStart ? 'alates ' + s.intervalStart.slice(11, 16) + ' (EET)' : 'hinnainfo puudub';
+  showNtp(s.ntp);
   if (!dragging) { limit = s.limit; slider.value = toPos(limit); }
   render();
 }
