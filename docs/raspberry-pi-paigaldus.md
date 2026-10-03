@@ -9,7 +9,8 @@ Juhend viib valmis `elekter` rakenduse Raspberry Pi peale, nii et see käivitub 
 | Plaat | Raspberry Pi 3 Model B (1 GB RAM, WiFi 2,4 GHz pardal) |
 | Operatsioonisüsteem | Raspberry Pi OS **64-bit** (Bookworm), Lite versioon sobib |
 | Java Raspberry peal | **OpenJDK 17** või uuem (`openjdk-17-jre-headless`). Jar on kompileeritud `--release 17`-ga, nii et vanem kui 17 ei tööta |
-| Java arvutis (ehitamiseks) | JDK 26 (testitud) Gradle'i jaoks, `JAVA_HOME=~/.jdks/openjdk-26.0.1` |
+| Java arvutis (ehitamiseks) | mistahes JDK 17 või uuem koos `javac`-iga (testitud JDK 17 ja JDK 26-ga) |
+| SD-kaart | vähemalt **8 GB**, soovitatav 16 GB. Raspberry Pi OS Lite 64-bit on lahti pakituna umbes 2,6 GB, nii et **2 GB kaart ei mahuta** isegi süsteemi, JDK-d ja rakendust |
 | Lisapakett | `gpiod` (libgpiod käsurea tööriistad, vajalik `gpioset` käsk) |
 | Jar arvutis | `build/libs/elekter-0.0.1.jar` (`-plain.jar` faili ei ole vaja) |
 | Jar Raspberry peal | `/opt/elekter/elekter.jar` |
@@ -60,7 +61,7 @@ timedatectl          # "System clock synchronized: yes" ja "NTP service: active"
 groups               # peab sisaldama "gpio"
 ```
 
-Kellaaja sünkroniseerimise (NTP) teeb operatsioonisüsteem ise (`systemd-timesyncd`). Rakendus kontrollib kella lisaks ise (vt jaotist "Kella kontroll"). Raspberry'l puudub reaalaja kell, nii et pärast voolukatkestust on kell enne esimest sünkroonimist vale. Rakendus sõltub kellast hinna leidmisel, seepärast käivitub teenus alles pärast `time-sync.target`'it.
+Kellaaja sünkroniseerimise (NTP) teeb operatsioonisüsteem ise (`systemd-timesyncd`). Rakendus kontrollib kella lisaks ise (vt jaotist "Kella kontroll"). Raspberry'l puudub reaalaja kell, nii et pärast voolukatkestust on kell enne esimest sünkroonimist vale. Rakendus sõltub kellast hinna leidmisel. Teenus käivitub pärast `time-sync.target`'it, aga see ei garanteeri sünkroonitud kella, seepärast kontrollib rakendus kella ise (vt jaotist "Kella kontroll").
 
 Täiendavat Gradle'i, Spring Booti ega Mavenit Raspberry peale **ei** paigaldata.
 
@@ -76,8 +77,7 @@ sudo chown pi:pi /opt/elekter
 Arvutis projekti kaustas:
 
 ```
-export JAVA_HOME=~/.jdks/openjdk-26.0.1
-./gradlew bootJar
+./gradlew bootJar     # vajadusel enne: export JAVA_HOME=<JDK 17+ kaust>
 scp build/libs/elekter-0.0.1.jar pi@elekter.local:/opt/elekter/elekter.jar
 scp deploy/elekter.service pi@elekter.local:/tmp/
 ```
@@ -97,7 +97,7 @@ sudo systemctl enable --now elekter
 ```
 systemctl status elekter                 # "active (running)"
 journalctl -u elekter -f                 # logi (Ctrl+C väljumiseks); otsi rida "Started ElekterApplication"
-curl localhost:8080/api/status           # JSON: currentPrice, limit, switchOn, intervalStart
+curl localhost:8080/api/status           # JSON: currentPrice, limit, switchOn, intervalStart, ntp, checkedAt, relay, prices
 ```
 
 Käivitus võtab Pi 3 peal tõenäoliselt umbes pool minutit. Ava seejärel arvutis või telefonis brauser: `http://elekter.local:8080/` (või `http://<ip>:8080/`). Liigutad liugurit ja lüliti märk peaks muutuma.
@@ -114,16 +114,17 @@ GPIO17 (pinn 11) → relee klemm 3 (**+**), GND (pinn 9) → relee klemm 4 (**�
 
 ## 7. Uuendamine (uus versioon)
 
-Arvutis:
+Lihtsaim on `deploy/deploy.sh pi@elekter.local`. Käsitsi, arvutis:
 
 ```
 ./gradlew bootJar
-scp build/libs/elekter-0.0.1.jar pi@elekter.local:/opt/elekter/elekter.jar
+scp build/libs/elekter-0.0.1.jar pi@elekter.local:/opt/elekter/elekter.jar.new
 ```
 
-Raspberry peal:
+Raspberry peal (jar vahetatakse `mv`-ga, sest töötava jar'i faili ei tohi üle kirjutada):
 
 ```
+mv -f /opt/elekter/elekter.jar.new /opt/elekter/elekter.jar
 sudo systemctl restart elekter
 ```
 

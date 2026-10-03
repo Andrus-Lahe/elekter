@@ -1,6 +1,6 @@
 # Vestluse kokkuvõte (Claude jaoks)
 
-Kokkuvõte planeerimisvestlusest. Koodi ei ole veel muudetud; kõik allpool on otsused ja plaan.
+Kokkuvõte planeerimisvestlusest ja sellest, mis on tehtud. Tehtud asjade kirjeldus on ka failis `CLAUDE.md`, paigaldus on failis `raspberry-pi-paigaldus.md`.
 
 ## Eesmärk
 
@@ -8,15 +8,16 @@ Elektri börsihinna põhjal Raspberry Pi GPIO lüliti juhtimine. Veebileht, kus 
 
 ## Praegune seis
 
-- `GET /prices` (`PriceController.java`) tagastab Nord Pooli EE 15-minutilised hinnad (EUR/MWh) tekstina.
-- Puudub: veebileht, limiidi salvestus, failide haldus, ajastused, GPIO, testid.
+Kõik allpool "Otsused" all kirjeldatu on tehtud ja testitud (`./gradlew test`): veebileht, limiidi salvestus, hinnafailid ja 14:30 allalaadimine, 3-minutiline lüliti kontroll, relee GPIO17 peal, NTP kellakontroll, staatuse read lehel, paigaldusskript. Päris Raspberry Pi peal on testimata: GPIO/relee, `systemd` teenus ja `deploy.sh`.
+
+Veel tegemata: veebilehe parool (praegu pole autentimist, leht on mõeldud ainult koduvõrgule), lüliti seisu ajalugu.
 
 ## Otsused
 
 **Liugur ja skaala**
 - Skaala -10 kuni 1000, horisontaalselt moonutatud: -10–75 võtab 60% laiusest, 75–100 8%, 100–200 8%, 200–300 9%, 300–500 10% ja 500–1000 viimased 5%.
 - Skaala kohal punane kolmnurk märgib praegust hinda.
-- Kastid: Limiit, Praegune hind, Lüliti. Allosas failide/NTP staatus.
+- Leht näitab: suurt hinda, SEES/VÄLJAS märki, 40 kastist skaalat (rohelised kastid on limiidist vasakul), liugurit, limiiti ja allosas kolme staatuse rida (lüliti/relee, hinnafailid, NTP).
 - Liuguri vabastamisel salvestatakse limiit (`PUT /api/limit`).
 
 **Lüliti loogika**
@@ -33,18 +34,12 @@ Elektri börsihinna põhjal Raspberry Pi GPIO lüliti juhtimine. Veebileht, kus 
 - NTP kellaaja kontroll iga tund (SNTP päring `pool.ntp.org`-ile). Rakendus ainult mõõdab kella nihet, kella korrigeerib operatsioonisüsteem (`systemd-timesyncd`), sest kella seadmine vajab root-õigusi. Kui nihe on üle 60 sekundi, on lüliti VÄLJAS ja allalaadimised ootavad. Kui NTP serverini ei jõua, lülitit ei blokeerita, aga lehel on hoiatus. Vale kella või ühenduseta korral korratakse kontrolli iga 2 minuti tagant.
 - Limiit ja hinnafailid salvestatakse kettale (limiit säilib taaskäivitusel).
 
-## Lahtised küsimused
+## Lahendatud küsimused
 
-- Ajavöönd: soovitus `Europe/Tallinn` (EET/EEST), mitte fikseeritud UTC+2. Nord Pooli päevad on UTC, praegune kood kasutab UTC kuupäevi.
-- Keskööl peab "tomorrow" fail saama "today" failiks enne vana kustutamist.
-- Veateated API märkmetes on `—`, kuni controller puudub (ei mõelda välja).
-- Vue vs staatiline HTML: valik tegemata.
-
-## Soovitatud väikseim esimene samm
-
-1. `src/main/resources/static/index.html`: HTML, CSS ja JavaScript ühes failis, Spring Boot serveerib selle aadressil `/`.
-2. `GET /api/status` ja `PUT /api/limit` (limiit alguses mälus).
-3. Hiljem: failide allalaadimine ja ajastused, lüliti kontroll, GPIO, NTP.
+- **Ajavöönd:** kasutusel on `Europe/Tallinn` (EET/EEST). Nord Pooli tarnepäev järgib CET-i ja algab Eesti ajas kell 01:00, seepärast on failid nimetatud Nord Pooli kuupäeva järgi (vt "Hinnafailid ja ajastus").
+- **"Tomorrow" muutumine "today"-ks:** eraldi ümbernimetamist pole, sest faile otsitakse praeguse kellaaja järgi kõigist failidest.
+- **Veateated API märkmetes:** controller on olemas, kirjas on tegelik 400 vastus `PUT /api/limit` jaoks.
+- **Vue või staatiline HTML:** valitud on staatiline HTML (`index.html`), Vue-d ja ehitusetappi pole.
 
 ## Seotud failid
 
