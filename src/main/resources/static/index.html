@@ -39,7 +39,7 @@
 // Compressed scale (value -> position 0..1000): -10..75 takes 60% of the width,
 // 75..300 the next 25%, 300..500 10% and 500..1000 only the last 5%.
 const BOXES = 40;
-const STOPS = [[-10, 0], [75, 600], [100, 650], [200, 760], [300, 850], [500, 950], [1000, 1000]];
+const STOPS = [[-10, 0], [75, 600], [100, 680], [200, 760], [300, 850], [500, 950], [1000, 1000]];
 const interp = (x, from, to) => {
   let i = 1;
   while (i < STOPS.length - 1 && x > STOPS[i][from]) i++;
