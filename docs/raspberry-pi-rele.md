@@ -49,11 +49,11 @@ Pinn 1 on SD-kaardi poolses otsas. Tabelis on füüsilised numbrid (1–40); pro
 - GPIO17 (pinn 11) → relee klemm 3 (**+**)
 - GND (pinn 9) → relee klemm 4 (**−**)
 - Järjestikust takistit ei ole vaja, sest relee piirab sisendvoolu ise.
-- Koormaklemmid 1 ja 2 on eraldi ahelas (230 V).
+- Koormusklemmid 1 ja 2 on eraldi ahelas (230 V).
 - Pi käivitumisel on GPIO tavaliselt LOW, seega relee on algul VÄLJAS (sobib reegliga "tõrke korral lüliti välja").
 
 ## Ohutus (230 V)
 
-- Pane ahelasse kaitse ja koormapool kinnisesse korpusesse.
-- Väljalülitatud olekus võib koormal olla kuni 12 mA lekkevool, väikese koormaga (nt LED) võib see tööle jääda.
+- Pane ahelasse kaitse ja koormuse pool kinnisesse korpusesse.
+- Väljalülitatud olekus võib koormusel olla kuni 12 mA lekkevool, väikese koormusega (nt LED) võib see tööle jääda.
 - Võrgupinge juhtmeid ei tohi ühendada ilma kogemuseta.
