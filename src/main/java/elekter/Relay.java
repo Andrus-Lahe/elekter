@@ -1,6 +1,7 @@
 package elekter;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -17,33 +18,49 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class Relay {
+    /** {@code running}: the gpioset process holding the line is alive (only meaningful when {@code enabled}). */
+    public record Info(boolean enabled, Boolean on, boolean running, String changedAt) {}
+
     private static final Logger log = LoggerFactory.getLogger(Relay.class);
     private static final int LINE = 17;
 
     private final boolean enabled;
     private final boolean activeLow;
     private final String chip;
+    private final String command;
 
     private Process process;
     private Boolean state;
+    private Instant changedAt;
     private Integer libgpiodMajor;
 
     public Relay(@Value("${elekter.gpio.enabled:false}") boolean enabled,
                  @Value("${elekter.gpio.active-low:false}") boolean activeLow,
-                 @Value("${elekter.gpio.chip:gpiochip0}") String chip) {
+                 @Value("${elekter.gpio.chip:gpiochip0}") String chip,
+                 @Value("${elekter.gpio.command:gpioset}") String command) {
         this.enabled = enabled;
         this.activeLow = activeLow;
         this.chip = chip;
+        this.command = command;
+    }
+
+    public synchronized Info info() {
+        return new Info(enabled, state, process != null && process.isAlive(),
+                changedAt == null ? null : PriceService.formatEet(changedAt));
     }
 
     public synchronized void set(boolean on) {
         boolean changed = !Boolean.valueOf(on).equals(state);
-        if (changed) log.info("Relay GPIO{} -> {}", LINE, on ? "ON" : "OFF");
+        if (changed) {
+            log.info("Relay GPIO{} -> {}", LINE, on ? "ON" : "OFF");
+            changedAt = Instant.now();
+        }
         if (!enabled) {
             state = on;
             return;
         }
         if (!changed && process != null && process.isAlive()) return;
+        if (!changed) log.warn("{} process had exited, restarting it", command);
 
         try {
             stop();
@@ -79,13 +96,13 @@ public class Relay {
     private List<String> command(int level) throws IOException, InterruptedException {
         // libgpiod v1: "gpioset --mode=signal CHIP LINE=VALUE"; v2 (holds the line until killed): "gpioset -c CHIP LINE=VALUE"
         return major() >= 2
-                ? List.of("gpioset", "-c", chip, LINE + "=" + level)
-                : List.of("gpioset", "--mode=signal", chip, LINE + "=" + level);
+                ? List.of(command, "-c", chip, LINE + "=" + level)
+                : List.of(command, "--mode=signal", chip, LINE + "=" + level);
     }
 
     private int major() throws IOException, InterruptedException {
         if (libgpiodMajor == null) {
-            Process p = new ProcessBuilder("gpioset", "--version").redirectErrorStream(true).start();
+            Process p = new ProcessBuilder(command, "--version").redirectErrorStream(true).start();
             String out = new String(p.getInputStream().readAllBytes());
             p.waitFor();
             Matcher m = Pattern.compile("v(\\d+)").matcher(out);

@@ -157,6 +157,16 @@ Rakendus salvestab hinnad kausta `/opt/elekter/prices/`, üks fail Nord Pooli ta
 - **Tõrke korral** (faili pole, hinda pole) on lüliti VÄLJAS.
 - Failid on tavalised tekstifailid, neid võib käsitsi vaadata (`cat /opt/elekter/prices/*.txt`) või kustutada, siis laetakse need uuesti alla.
 
+## Staatus lehel
+
+Lehe allservas on kolm rida:
+
+- **Lüliti:** mida relee praegu teeb (SEES/VÄLJAS), millal lülitit viimati kontrolliti (iga 3 minuti tagant) ja millal see viimati muutus. Kui `gpioset` protsess, mis relee pinni hoiab, on surnud, on rida punane ja protsess käivitatakse järgmisel kontrollil uuesti. Kui GPIO juhtimine pole sisse lülitatud (arendusarvuti), näitab rida seda.
+- **Hinnafailid:** kas tänane ja homne fail on olemas ning kuidas läks viimane allalaadimine. Rida on punane, kui tänane fail puudub.
+- **NTP:** kella kontrolli tulemus (vt allpool).
+
+Pinni taset ennast tagasi lugeda ei saa, sest libgpiod ei lase lugeda pinni, mida teine protsess hoiab. Kontrollitakse, et pinni hoidev protsess elab.
+
 ## Kella kontroll
 
 Rakendus küsib NTP-serverilt (`pool.ntp.org`, UDP port 123) kellaaega käivitusel ja siis iga tund (kui kell on vale või server ei vasta, iga 2 minuti tagant) ning näitab tulemust lehe allservas.

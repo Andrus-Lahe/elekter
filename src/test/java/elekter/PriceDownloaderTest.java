@@ -46,7 +46,7 @@ class PriceDownloaderTest {
 
     private PriceDownloader downloader(FakePrices prices) {
         NtpClock clock = new NtpClock(scheduler, "localhost", 123, 60);
-        return new PriceDownloader(prices, new SwitchService(prices, new Relay(false, false, "gpiochip0"), clock),
+        return new PriceDownloader(prices, new SwitchService(prices, new Relay(false, false, "gpiochip0", "gpioset"), clock),
                 clock, scheduler, 0);
     }
 

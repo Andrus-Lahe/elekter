@@ -34,6 +34,11 @@ import org.springframework.stereotype.Service;
 public class PriceService {
     public record Entry(Instant start, Instant end, double price) {}
 
+    public record LastDownload(String date, boolean ok, String at) {}
+
+    /** Whether the files of today's and tomorrow's delivery date exist, and how the last download went. */
+    public record FileStatus(boolean today, boolean tomorrow, LastDownload lastDownload) {}
+
     private static final Logger log = LoggerFactory.getLogger(PriceService.class);
     private static final ZoneId EET = ZoneId.of("Europe/Tallinn");
     private static final ZoneId NORD_POOL = ZoneId.of("Europe/Berlin");
@@ -42,6 +47,7 @@ public class PriceService {
             "\"deliveryStart\":\"(.*?)\".*?\"deliveryEnd\":\"(.*?)\".*?\"EE\":(-?[\\d.]+)");
 
     private final Path dir;
+    private volatile LastDownload lastDownload;
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
     public PriceService(@Value("${elekter.prices.dir:prices}") String dir) {
@@ -70,8 +76,19 @@ public class PriceService {
         return all;
     }
 
+    public FileStatus fileStatus(Instant now) {
+        LocalDate today = deliveryDate(now);
+        return new FileStatus(hasFile(today), hasFile(today.plusDays(1)), lastDownload);
+    }
+
     /** Downloads the prices of one delivery date into its file. Returns false if nothing could be saved. */
     public boolean download(LocalDate date) {
+        boolean ok = tryDownload(date);
+        lastDownload = new LastDownload(date.toString(), ok, formatEet(Instant.now()));
+        return ok;
+    }
+
+    private boolean tryDownload(LocalDate date) {
         try {
             List<Entry> entries = fetch(date);
             if (entries.isEmpty()) {

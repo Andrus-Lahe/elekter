@@ -13,12 +13,14 @@ import org.springframework.stereotype.Service;
 public class SwitchService {
     private static final Path LIMIT_FILE = Path.of("limit.txt");
 
-    public record Status(Double currentPrice, double limit, boolean switchOn, String intervalStart, NtpClock.Info ntp) {}
+    public record Status(Double currentPrice, double limit, boolean switchOn, String intervalStart, NtpClock.Info ntp,
+                         String checkedAt, Relay.Info relay, PriceService.FileStatus prices) {}
 
     private final PriceService prices;
     private final Relay relay;
     private final NtpClock clock;
     private volatile double limit = loadLimit();
+    private volatile Instant lastApplied;
 
     public SwitchService(PriceService prices, Relay relay, NtpClock clock) {
         this.prices = prices;
@@ -27,11 +29,10 @@ public class SwitchService {
     }
 
     public Status status() {
-        NtpClock.Info ntp = clock.info();
-        // A wrong clock makes every price lookup meaningless -> switch OFF.
-        if (clock.isWrong()) return new Status(null, limit, false, null, ntp);
-
         Instant now = Instant.now();
+        // A wrong clock makes every price lookup meaningless -> switch OFF.
+        if (clock.isWrong()) return status(now, null);
+
         PriceService.Entry current = null;
         try {
             current = prices.entries().stream()
@@ -40,8 +41,16 @@ public class SwitchService {
         } catch (Exception ignored) {
             // no price info -> switch stays off
         }
-        if (current == null) return new Status(null, limit, false, null, ntp);
-        return new Status(current.price(), limit, current.price() <= limit, PriceService.formatEet(current.start()), ntp);
+        return status(now, current);
+    }
+
+    private Status status(Instant now, PriceService.Entry current) {
+        String checked = lastApplied == null ? null : PriceService.formatEet(lastApplied);
+        if (current == null) {
+            return new Status(null, limit, false, null, clock.info(), checked, relay.info(), prices.fileStatus(now));
+        }
+        return new Status(current.price(), limit, current.price() <= limit, PriceService.formatEet(current.start()),
+                clock.info(), checked, relay.info(), prices.fileStatus(now));
     }
 
     public void setLimit(double newLimit) throws IOException {
@@ -53,7 +62,9 @@ public class SwitchService {
     /** Runs at startup and then every 3 minutes. */
     @Scheduled(fixedRate = 3 * 60 * 1000)
     public void apply() {
-        relay.set(status().switchOn());
+        boolean on = status().switchOn();
+        lastApplied = Instant.now();
+        relay.set(on);
     }
 
     private static double loadLimit() {

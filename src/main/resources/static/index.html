@@ -21,8 +21,9 @@
   .ticks span { position: absolute; transform: translateX(-50%); }
   input[type=range] { width: 100%; margin: .5rem 0; }
   #since { color: #666; font-size: .9rem; }
-  #ntp { margin-top: 2rem; padding-top: .75rem; border-top: 1px solid #ddd; color: #666; font-size: .9rem; }
-  #ntp.bad { color: #c0392b; font-weight: 600; }
+  #status { margin-top: 2rem; padding-top: .75rem; border-top: 1px solid #ddd; font-size: .9rem; color: #666; }
+  #status div { margin: .2rem 0; }
+  #status .bad { color: #c0392b; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -36,7 +37,7 @@
 <div class="ticks" id="ticks"></div>
 <input type="range" id="slider" min="0" max="1000" step="1">
 <div>Limiit: <b id="limit">–</b> EUR/MWh</div>
-<div id="ntp"></div>
+<div id="status"><div id="sw"></div><div id="files"></div><div id="ntp"></div></div>
 
 <script>
 // Compressed scale (value -> position 0..1000): -10..75 takes 60% of the width,
@@ -77,6 +78,29 @@ function render() {
   $('switch').className = on ? 'on' : 'off';
 }
 
+const hhmm = t => t ? t.slice(11, 16) : '–';
+const setLine = (id, text, bad) => { $(id).textContent = text; $(id).className = bad ? 'bad' : ''; };
+
+function showSwitch(s) {
+  const r = s.relay, want = s.switchOn ? 'SEES' : 'VÄLJAS';
+  if (!r.enabled) {
+    setLine('sw', `Lüliti: arvutatud ${want}, GPIO juhtimine pole sisse lülitatud (kontrollitud ${hhmm(s.checkedAt)})`, false);
+  } else if (!r.running) {
+    setLine('sw', `Lüliti: relee juhtimisprotsess (gpioset) ei tööta, taaskäivitatakse järgmisel kontrollil (kontrollitud ${hhmm(s.checkedAt)})`, true);
+  } else {
+    const now = r.on ? 'SEES' : 'VÄLJAS';
+    const lag = r.on === s.switchOn ? '' : `, peaks olema ${want} (uueneb kuni 3 min jooksul)`;
+    setLine('sw', `Lüliti: relee GPIO17 on ${now}${lag} (viimane kontroll ${hhmm(s.checkedAt)}, muutus ${hhmm(r.changedAt)})`, false);
+  }
+}
+
+function showFiles(p) {
+  const mark = ok => ok ? 'olemas' : 'puudub';
+  const d = p.lastDownload;
+  const last = d ? `; viimane allalaadimine ${d.date} kell ${hhmm(d.at)}: ${d.ok ? 'õnnestus' : 'ebaõnnestus'}` : '';
+  setLine('files', `Hinnafailid: täna ${mark(p.today)}, homme ${mark(p.tomorrow)}${last}`, !p.today);
+}
+
 function showNtp(n) {
   const secs = n.offsetMillis === null ? '' : (Math.abs(n.offsetMillis) / 1000).toFixed(1) + ' s';
   const at = n.checkedAt ? ', kontrollitud ' + n.checkedAt.slice(11, 16) : '';
@@ -86,8 +110,7 @@ function showNtp(n) {
     unreachable: 'NTP: serveriga ei saanud ühendust' + (n.checkedAt ? ` (viimane õnnestunud kontroll ${n.checkedAt.slice(11, 16)})` : ''),
     unknown: 'NTP: pole veel kontrollitud',
   }[n.state];
-  $('ntp').textContent = text;
-  $('ntp').className = n.state === 'wrong' ? 'bad' : '';
+  setLine('ntp', text, n.state === 'wrong');
 }
 
 async function refresh() {
@@ -96,6 +119,8 @@ async function refresh() {
   $('price').textContent = price === null ? '–' : price.toFixed(2);
   $('since').textContent = s.intervalStart ? 'alates ' + s.intervalStart.slice(11, 16) + ' (EET)' : 'hinnainfo puudub';
   showNtp(s.ntp);
+  showSwitch(s);
+  showFiles(s.prices);
   if (!dragging) { limit = s.limit; slider.value = toPos(limit); }
   render();
 }
