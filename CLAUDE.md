@@ -31,6 +31,8 @@ Gradle and the Spring Boot CLI were installed via SDKMAN (`source ~/.sdkman/bin/
 
 ## Raspberry Pi 3 Model B deployment
 
+Full step-by-step guide (Estonian): `docs/raspberry-pi-paigaldus.md`.
+
 Target: Raspberry Pi OS 64-bit (Bookworm), `sudo apt install openjdk-17-jre-headless gpiod`, timezone `Europe/Tallinn`, NTP via systemd-timesyncd.
 
 ```
