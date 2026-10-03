@@ -19,6 +19,17 @@ Juhend viib valmis `elekter` rakenduse Raspberry Pi peale, nii et see käivitub 
 | Relee | GPIO17 (BCM), füüsiline pinn 11, GND pinn 9 |
 | Ajavöönd | `Europe/Tallinn` |
 
+## Kiirtee: deploy-skript
+
+Pärast punkti 1 (SD-kaart, WiFi, SSH) teeb kõik ülejäänu arvutis üks käsk, nii et punkte 2–4 ja 7 ei pea käsitsi tegema:
+
+```
+deploy/deploy.sh --setup pi@elekter.local     # esimene kord: paigaldab ka Java 17, gpiod ja ajavööndi
+deploy/deploy.sh pi@elekter.local             # edaspidi (uus versioon)
+```
+
+Skript jooksutab testid ja ehitab jar'i, loob `/opt/elekter`, kopeerib jar'i ja teenuse faili (`User=` rida asendatakse sihtkasutajaga), käivitab teenuse uuesti ja ootab kuni 2 minutit, kuni `/api/status` vastab. Host võib olla ka keskkonnamuutujas `PI_HOST`. Sudo küsib Raspberry paroolit, kui see pole paroolita seadistatud. Allpool on samad sammud käsitsi.
+
 ## 1. Raspberry ettevalmistus (üks kord)
 
 1. Kirjuta SD-kaardile **Raspberry Pi OS Lite (64-bit)** programmiga *Raspberry Pi Imager*.

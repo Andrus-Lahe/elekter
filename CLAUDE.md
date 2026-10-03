@@ -18,6 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `src/main/resources/static/index.html` — the single-page UI (slider, price marker, switch badge).
 - `build.gradle` / `settings.gradle` / `gradlew` — Gradle 9.8 build with the Gradle wrapper; compiled with `--release 17` so the jar runs on JDK 17+.
 - `deploy/elekter.service` — systemd unit for the Raspberry Pi (see below).
+- `deploy/deploy.sh` — builds (tests + bootJar), copies jar and unit to the Pi over ssh/scp, restarts the service and waits for `/api/status`; `--setup` also installs Java 17 and gpiod. Usage: `deploy/deploy.sh [--setup] [user@host]` (default `$PI_HOST` or `pi@elekter.local`).
 - `.claude/skills/` — skills copied from the `toolrental` project; git-ignored, not part of this app.
 
 ## Build / run
@@ -34,7 +35,7 @@ Gradle and the Spring Boot CLI were installed via SDKMAN (`source ~/.sdkman/bin/
 
 ## Raspberry Pi 3 Model B deployment
 
-Full step-by-step guide (Estonian): `docs/raspberry-pi-paigaldus.md`.
+Full step-by-step guide (Estonian): `docs/raspberry-pi-paigaldus.md`. The quickest way is `deploy/deploy.sh`; the manual commands below do the same.
 
 Target: Raspberry Pi OS 64-bit (Bookworm), `sudo apt install openjdk-17-jre-headless gpiod`, timezone `Europe/Tallinn`, NTP via systemd-timesyncd.
 
