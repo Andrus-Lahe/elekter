@@ -20,7 +20,8 @@ Elektri börsihinna põhjal Raspberry Pi GPIO lüliti juhtimine. Veebileht, kus 
 - Liuguri vabastamisel salvestatakse limiit (`PUT /api/limit`).
 
 **Lüliti loogika**
-- ON, kui hind on kõrgem kui limiit. Kui hind võrdub limiidiga või on madalam, on OFF.
+- ON, kui hind on madalam kui limiit või sellega võrdne (marker liuguri vasakul, rohelisel alal). Kui hind on limiidist kõrgem, on OFF.
+- Lüliti järgib liugurit reaalajas (ka lohistamise ajal).
 - Kui hinnainfo puudub või allalaadimine ebaõnnestub, lüliti OFF.
 
 **Hinnafailid ja ajastus (kõik EET)**

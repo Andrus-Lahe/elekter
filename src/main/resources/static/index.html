@@ -68,6 +68,10 @@ function render() {
   }
   $('marker').style.display = price === null ? 'none' : '';
   if (price !== null) $('marker').style.left = toPos(price) / 10 + '%';
+  // Switch follows the slider live: ON while the price is at or below the limit.
+  const on = price !== null && limit !== null && price <= limit;
+  $('switch').textContent = on ? 'SEES' : 'VÄLJAS';
+  $('switch').className = on ? 'on' : 'off';
 }
 
 async function refresh() {
@@ -75,8 +79,6 @@ async function refresh() {
   price = s.currentPrice;
   $('price').textContent = price === null ? '–' : price.toFixed(2);
   $('since').textContent = s.intervalStart ? 'alates ' + s.intervalStart.slice(11, 16) + ' (EET)' : 'hinnainfo puudub';
-  $('switch').textContent = s.switchOn ? 'SEES' : 'VÄLJAS';
-  $('switch').className = s.switchOn ? 'on' : 'off';
   if (!dragging) { limit = s.limit; slider.value = toPos(limit); }
   render();
 }

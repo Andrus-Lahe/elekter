@@ -42,7 +42,7 @@ public class StatusController {
             // no price info -> switch stays off
         }
         if (current == null) return new Status(null, limit, false, null);
-        return new Status(current.price(), limit, current.price() > limit,
+        return new Status(current.price(), limit, current.price() <= limit,
                 DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(current.start().atZone(EET)));
     }
 
