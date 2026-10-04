@@ -2,7 +2,7 @@
 # Builds elekter, copies it to the Raspberry Pi and (re)starts the systemd service.
 #
 # Usage: deploy/deploy.sh [--setup] [user@host]
-#   --setup   first time only: install Java 17 and gpiod and set the time zone to Europe/Tallinn
+#   --setup   first time only: install Java (OpenJDK 21, else 17) and gpiod and set the time zone to Europe/Tallinn
 #   host      default: $PI_HOST, else pi@elekter.local
 set -euo pipefail
 
@@ -27,7 +27,8 @@ sed "s/^User=.*/User=$PI_USER/" deploy/elekter.service > "$TMP/elekter.service"
 
 if [[ $SETUP -eq 1 ]]; then
     echo "==> First-time setup on $HOST"
-    ssh -t "$HOST" "sudo apt-get update && sudo apt-get install -y openjdk-17-jre-headless gpiod && sudo timedatectl set-timezone Europe/Tallinn"
+    # openjdk-21 where the OS ships it, otherwise 17 (the jar targets Java 17 and runs on both)
+    ssh -t "$HOST" "sudo apt-get update && (sudo apt-get install -y openjdk-21-jre-headless gpiod || sudo apt-get install -y openjdk-17-jre-headless gpiod) && sudo timedatectl set-timezone Europe/Tallinn"
 fi
 
 echo "==> Copying to $HOST:/opt/elekter"

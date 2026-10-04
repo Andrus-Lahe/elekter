@@ -7,8 +7,8 @@ Juhend viib valmis `elekter` rakenduse Raspberry Pi peale, nii et see käivitub 
 | Mis | Väärtus |
 |---|---|
 | Plaat | Raspberry Pi 3 Model B (1 GB RAM, WiFi 2,4 GHz pardal) |
-| Operatsioonisüsteem | Raspberry Pi OS **64-bit** (Bookworm), Lite versioon sobib |
-| Java Raspberry peal | **OpenJDK 17** või uuem (`openjdk-17-jre-headless`). Jar on kompileeritud `--release 17`-ga, nii et vanem kui 17 ei tööta |
+| Operatsioonisüsteem | Raspberry Pi OS **64-bit**, Lite versioon sobib |
+| Java Raspberry peal | **OpenJDK 21** (`openjdk-21-jre-headless`). Jar on kompileeritud `--release 17`-ga, nii et töötab ka OpenJDK 17-ga (`openjdk-17-jre-headless`, kui sinu OS-i versioonis 21 pole), aga vanemaga mitte |
 | Java arvutis (ehitamiseks) | mistahes JDK 17 või uuem koos `javac`-iga (testitud JDK 17 ja JDK 26-ga) |
 | SD-kaart | vähemalt **8 GB**, soovitatav 16 GB. Raspberry Pi OS Lite 64-bit on lahti pakituna umbes 2,6 GB, nii et **2 GB kaart ei mahuta** isegi süsteemi, JDK-d ja rakendust |
 | Lisapakett | `gpiod` (libgpiod käsurea tööriistad, vajalik `gpioset` käsk) |
@@ -25,7 +25,7 @@ Juhend viib valmis `elekter` rakenduse Raspberry Pi peale, nii et see käivitub 
 Pärast punkti 1 (SD-kaart, WiFi, SSH) teeb kõik ülejäänu arvutis üks käsk, nii et punkte 2–4 ja 7 ei pea käsitsi tegema:
 
 ```
-deploy/deploy.sh --setup pi@elekter.local     # esimene kord: paigaldab ka Java 17, gpiod ja ajavööndi
+deploy/deploy.sh --setup pi@elekter.local     # esimene kord: paigaldab ka Java (21, muidu 17), gpiod ja ajavööndi
 deploy/deploy.sh pi@elekter.local             # edaspidi (uus versioon)
 ```
 
@@ -48,14 +48,14 @@ Skript jooksutab testid ja ehitab jar'i, loob `/opt/elekter`, kopeerib jar'i ja 
 
 ```
 sudo apt update
-sudo apt install -y openjdk-17-jre-headless gpiod
+sudo apt install -y openjdk-21-jre-headless gpiod     # kui paketti pole: openjdk-17-jre-headless
 sudo timedatectl set-timezone Europe/Tallinn     # kui Imageris ei seadnud
 ```
 
 Kontrolli:
 
 ```
-java -version        # peab näitama 17 või uuemat
+java -version        # peab näitama 21 (või vähemalt 17)
 gpioset --version    # libgpiod versioon (Bookworm: 1.6, uuematel 2.x, mõlemad sobivad)
 timedatectl          # "System clock synchronized: yes" ja "NTP service: active"
 groups               # peab sisaldama "gpio"
@@ -146,7 +146,7 @@ Limiit (`limit.txt`) jääb alles, sest see on kaustas `/opt/elekter` jari kõrv
 
 | Probleem | Põhjus / lahendus |
 |---|---|
-| `UnsupportedClassVersionError` logis | Java on liiga vana. Kontrolli `java -version`, vaja on 17+. |
+| `UnsupportedClassVersionError` logis | Java on liiga vana. Kontrolli `java -version`, vaja on 21 (või vähemalt 17). |
 | Leht ei avane | Kontrolli `systemctl status elekter`, Pi IP-d ja et arvuti on samas võrgus. Port on 8080. |
 | Hinda ei ole (`currentPrice: null`) | Pi'l pole internetti, kell on vale (`timedatectl`) või Nord Pool ei vasta. Lüliti on sel ajal VÄLJAS. Homse päeva hinnad ilmuvad alles pärast Nord Pooli avaldamist (tavaliselt pärastlõunal). |
 | Logis "Could not drive GPIO17" | `gpioset` puudub (`sudo apt install gpiod`) või kasutaja pole grupis `gpio` (`sudo usermod -aG gpio pi`, siis taaskäivita Pi). |
