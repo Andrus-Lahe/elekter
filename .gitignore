@@ -36,3 +36,8 @@ build/
 .claude/skills/
 limit.txt
 prices/
+
+### Local docs and Claude config ###
+docs/raspberry-pi-rele.md
+docs/vestluse-kokkuvote.md
+.claude
